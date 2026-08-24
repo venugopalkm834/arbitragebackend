@@ -1,0 +1,31 @@
+# One-command local MongoDB for development.
+#
+# Wallet ledger operations use multi-document transactions (spec §42),
+# which MongoDB only supports on a replica set — a single standalone
+# `mongod` will NOT work. This compose file runs Mongo as a one-node
+# replica set (`rs0`) and auto-initiates it, which is sufficient for
+# local dev. MongoDB Atlas's free M0 tier is already a replica set, so
+# nothing extra is needed there.
+#
+# Usage:
+#   docker compose up -d
+#   # MONGODB_URI in .env should then be:
+#   # mongodb://127.0.0.1:27017/arbitrex?replicaSet=rs0
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: arbitrex-mongo
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: echo "try { rs.status() } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) }" | mongosh --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mongo-data:
