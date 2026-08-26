@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as adminController from '../controllers/admin.controller';
 import { requireAuth, requireRole } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
-import { walletAdjustmentSchema, userStatusSchema, botConfigSchema, settleTradeSchema } from '../validators/admin.validators';
+import { walletAdjustmentSchema, userStatusSchema, botConfigSchema, settleTradeSchema, depositAddressSchema } from '../validators/admin.validators';
 
 const router = Router();
 
@@ -25,8 +25,6 @@ router.post('/deposits/:id/reject', adminController.rejectDeposit);
 router.get('/withdrawals', adminController.listAllWithdrawals);
 router.post('/withdrawals/:id/process', adminController.processWithdrawal);
 router.post('/withdrawals/:id/approve', adminController.approveWithdrawal);
-// One-click: PENDING/PROCESSING/APPROVED -> COMPLETED in a single action.
-router.post('/withdrawals/:id/approve-and-complete', adminController.approveAndCompleteWithdrawal);
 router.post('/withdrawals/:id/complete', adminController.completeWithdrawal);
 router.post('/withdrawals/:id/reject', adminController.rejectWithdrawal);
 
@@ -46,5 +44,10 @@ router.put('/bot-config', requireRole('SUPER_ADMIN'), validateBody(botConfigSche
 // spec §30 — per-pair arbitrage opportunity configuration.
 router.get('/arbitrage-opportunities', adminController.listOpportunityConfigs);
 router.put('/arbitrage-opportunities', requireRole('SUPER_ADMIN'), adminController.upsertOpportunityConfig);
+
+// Admin-managed platform receiving addresses shown to users on the Deposit page.
+router.get('/deposit-addresses', adminController.listDepositAddresses);
+router.post('/deposit-addresses', validateBody(depositAddressSchema), adminController.createDepositAddress);
+router.delete('/deposit-addresses/:id', adminController.deleteDepositAddress);
 
 export default router;

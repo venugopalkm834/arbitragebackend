@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
 export const walletAdjustmentSchema = z.object({
-  type: z.enum(['CREDIT_PROFIT', 'DEBIT_LOSS']),
+  // Not read by the controller — creditWallet/debitWallet each hardcode
+  // the type based on which endpoint was hit (/credit vs /debit), so it's
+  // optional here. It was previously required with no default, which
+  // silently rejected every real request from the admin panel (which
+  // never sent it) with a 400 before it reached the controller at all —
+  // that was the actual cause of "add/deduct amount not working."
+  type: z.enum(['CREDIT_PROFIT', 'DEBIT_LOSS']).optional(),
   amount: z.number().positive('Amount must be greater than 0'),
   reason: z.string().min(1, 'Reason is required'),
   description: z.string().optional().default('')
@@ -38,4 +44,13 @@ export const botConfigSchema = z.object({
 /** Admin manually settles an ACTIVE trade as either its own take-profit or stop-loss outcome. */
 export const settleTradeSchema = z.object({
   outcome: z.enum(['TAKE_PROFIT', 'STOP_LOSS'])
+});
+
+/** Admin adds a platform receiving address shown to users on the Deposit page. */
+export const depositAddressSchema = z.object({
+  currency: z.string().trim().min(1, 'Currency is required').max(20),
+  // Free text (not a closed enum) so admin can add networks beyond the
+  // initial BEP20/ERC20/TRC20 ask without a code change later.
+  network: z.string().trim().min(1, 'Network is required').max(30),
+  address: z.string().trim().min(1, 'Address is required').max(200)
 });

@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError } from '../utils/ApiError';
 import { Wallet } from '../models/Wallet';
 import { WalletTransaction } from '../models/WalletTransaction';
+import { DepositAddress } from '../models/depositAddress';
 
 export const getWallet = asyncHandler(async (req: Request, res: Response) => {
   const wallet = await Wallet.findOne({ userId: req.user!.id });
@@ -43,3 +44,22 @@ function serializeTransaction(tx: InstanceType<typeof WalletTransaction>) {
     createdAt: tx.createdAt
   };
 }
+
+/**
+ * GET /api/wallet/deposit-addresses — the platform's own receiving
+ * addresses for the Deposit page, admin-managed via
+ * /admin/deposit-addresses. Only currently-active ones are shown to
+ * users; disabled ones stay in the DB (referenced by past deposits'
+ * walletAddress) but drop out of this list.
+ */
+export const getDepositAddresses = asyncHandler(async (_req: Request, res: Response) => {
+  const addresses = await DepositAddress.find({ isActive: true }).sort({ currency: 1, network: 1 });
+  res.json(
+    addresses.map((a) => ({
+      id: a._id.toString(),
+      currency: a.currency,
+      network: a.network,
+      address: a.address
+    }))
+  );
+});

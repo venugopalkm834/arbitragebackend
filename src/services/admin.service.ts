@@ -160,58 +160,6 @@ export async function completeWithdrawal(withdrawalId: string, ctx: AuditContext
   return withdrawal;
 }
 
-/**
- * One-click withdrawal approval — collapses the PENDING → PROCESSING →
- * APPROVED → COMPLETED lifecycle into a single admin action, for the
- * common case where an admin just wants to pay a withdrawal out
- * immediately rather than stepping through each stage. Valid from any
- * pre-terminal status (PENDING, PROCESSING, or APPROVED).
- */
-export async function approveAndCompleteWithdrawal(withdrawalId: string, ctx: AuditContext) {
-  const withdrawal = await Withdrawal.findById(withdrawalId);
-  if (!withdrawal) throw ApiError.notFound('Withdrawal not found.');
-  if (withdrawal.status === 'COMPLETED') throw ApiError.badRequest('Withdrawal is already completed.');
-  if (withdrawal.status === 'REJECTED') throw ApiError.badRequest('Cannot complete a rejected withdrawal.');
-
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    await applyLedgerEntry(
-      {
-        userId: withdrawal.userId,
-        type: 'WITHDRAWAL',
-        amount: withdrawal.amount,
-        referenceId: withdrawal._id.toString(),
-        description: 'Withdrawal completed (one-click approval)',
-        createdBy: ctx.adminId
-      },
-      session
-    );
-
-    withdrawal.status = 'COMPLETED';
-    withdrawal.processedBy = new mongoose.Types.ObjectId(ctx.adminId);
-    withdrawal.processedAt = new Date();
-    await withdrawal.save({ session });
-
-    await session.commitTransaction();
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
-  }
-
-  await pushNotification(withdrawal.userId, 'WITHDRAWAL_APPROVED', `Your withdrawal of $${withdrawal.netAmount.toFixed(2)} has been completed.`);
-  await emitWalletUpdate(withdrawal.userId.toString());
-  await writeAudit(ctx, 'Approved and completed withdrawal (one-click)', {
-    targetUserId: withdrawal.userId.toString(), targetResource: 'Withdrawal', resourceId: withdrawal._id.toString(),
-    newValue: `-$${withdrawal.amount.toFixed(2)}`
-  });
-
-  return withdrawal;
-}
-
 export async function rejectWithdrawal(withdrawalId: string, ctx: AuditContext) {
   const withdrawal = await Withdrawal.findById(withdrawalId);
   if (!withdrawal) throw ApiError.notFound('Withdrawal not found.');
@@ -239,17 +187,39 @@ export async function adjustUserWallet(
   ctx: AuditContext
 ) {
   const session = await mongoose.startSession();
+
   try {
     session.startTransaction();
 
+    // Validate amount
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw ApiError.badRequest('Amount must be greater than 0.');
+    }
+
+    // Create admin adjustment
     const adjustment = (
-      await AdminAdjustment.create([{ adminId: ctx.adminId, userId, type, amount, reason, description }], { session })
+      await AdminAdjustment.create(
+        [
+          {
+            adminId: ctx.adminId,
+            userId,
+            type,
+            amount,
+            reason,
+            description
+          }
+        ],
+        { session }
+      )
     )[0];
 
+    // Apply wallet ledger entry
     await applyLedgerEntry(
       {
         userId,
-        type: type === 'CREDIT_PROFIT' ? 'ADMIN_CREDIT' : 'ADMIN_DEBIT',
+        type: type === 'CREDIT_PROFIT'
+          ? 'ADMIN_CREDIT'
+          : 'ADMIN_DEBIT',
         amount,
         referenceId: adjustment._id.toString(),
         description: `${reason}: ${description}`,
@@ -258,28 +228,72 @@ export async function adjustUserWallet(
       session
     );
 
+    // Update wallet profit/loss totals
+    if (type === 'CREDIT_PROFIT') {
+      await Wallet.updateOne(
+        { userId },
+        {
+          $inc: {
+            totalProfit: amount
+          }
+        },
+        { session }
+      );
+    } else if (type === 'DEBIT_LOSS') {
+      await Wallet.updateOne(
+        { userId },
+        {
+          $inc: {
+            totalLoss: amount
+          }
+        },
+        { session }
+      );
+    }
+
     await session.commitTransaction();
+
+    // Notifications/events should happen AFTER successful commit
+    const notificationType =
+      type === 'CREDIT_PROFIT'
+        ? 'ADMIN_CREDIT'
+        : 'ADMIN_DEBIT';
 
     await pushNotification(
       userId,
-      type === 'CREDIT_PROFIT' ? 'ADMIN_CREDIT' : 'ADMIN_DEBIT',
-      `${type === 'CREDIT_PROFIT' ? 'A credit' : 'A debit'} of $${amount.toFixed(2)} was applied to your wallet: ${reason}.`
+      notificationType,
+      `${
+        type === 'CREDIT_PROFIT' ? 'A credit' : 'A debit'
+      } of $${amount.toFixed(2)} was applied to your wallet: ${reason}.`
     );
+
     await emitWalletUpdate(userId);
-    await writeAudit(ctx, type === 'CREDIT_PROFIT' ? `Credited user $${amount.toFixed(2)} — ${reason}` : `Debited user $${amount.toFixed(2)} — ${reason}`, {
-      targetUserId: userId, targetResource: 'Wallet',
-      newValue: `${type === 'CREDIT_PROFIT' ? '+' : '-'}$${amount.toFixed(2)}`
-    });
+
+    await writeAudit(
+      ctx,
+      type === 'CREDIT_PROFIT'
+        ? `Credited user $${amount.toFixed(2)} — ${reason}`
+        : `Debited user $${amount.toFixed(2)} — ${reason}`,
+      {
+        targetUserId: userId,
+        targetResource: 'Wallet',
+        newValue: `${
+          type === 'CREDIT_PROFIT' ? '+' : '-'
+        }$${amount.toFixed(2)}`
+      }
+    );
 
     return adjustment;
   } catch (err) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
     throw err;
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 }
-
 // ---------------- User status ----------------
 
 export async function setUserStatus(userId: string, status: UserStatus, ctx: AuditContext) {

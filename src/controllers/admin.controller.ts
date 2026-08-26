@@ -14,6 +14,7 @@ import * as adminService from '../services/admin.service';
 import * as engine from '../services/arbitrageEngine.service';
 import { serializeTrade } from './trade.controller';
 import { AuditContext } from '../services/admin.service';
+import { DepositAddress } from '../models/depositAddress';
 
 function auditContext(req: Request): AuditContext {
   return {
@@ -157,9 +158,6 @@ export const processWithdrawal = asyncHandler(async (req: Request, res: Response
 });
 export const approveWithdrawal = asyncHandler(async (req: Request, res: Response) => {
   res.json(await adminService.approveWithdrawal(req.params.id, auditContext(req)));
-});
-export const approveAndCompleteWithdrawal = asyncHandler(async (req: Request, res: Response) => {
-  res.json(await adminService.approveAndCompleteWithdrawal(req.params.id, auditContext(req)));
 });
 export const completeWithdrawal = asyncHandler(async (req: Request, res: Response) => {
   res.json(await adminService.completeWithdrawal(req.params.id, auditContext(req)));
@@ -305,5 +303,43 @@ export const upsertOpportunityConfig = asyncHandler(async (req: Request, res: Re
     targetResource: 'ArbitrageOpportunityConfig', newValue: JSON.stringify(req.body), ipAddress: req.ip ?? 'unknown'
   });
   res.json(updated);
+});
+
+// ---------------- Deposit addresses (spec ask: admin-managed receiving addresses for the Deposit page) ----------------
+
+export const listDepositAddresses = asyncHandler(async (_req: Request, res: Response) => {
+  res.json(await DepositAddress.find().sort({ currency: 1, network: 1 }));
+});
+
+export const createDepositAddress = asyncHandler(async (req: Request, res: Response) => {
+  const { currency, network, address } = req.body;
+
+  const existing = await DepositAddress.findOne({
+    currency: String(currency).toUpperCase(),
+    network: String(network).toUpperCase()
+  });
+  if (existing) {
+    throw ApiError.badRequest(
+      `An address for ${currency} on ${network} already exists. Delete it first if you want to replace it.`
+    );
+  }
+
+  const created = await DepositAddress.create({ currency, network, address, createdBy: req.user!.id });
+  await AuditLog.create({
+    adminId: req.user!.id, adminName: req.user!.fullName, action: `Added deposit address for ${currency} (${network})`,
+    targetResource: 'DepositAddress', resourceId: created._id.toString(), newValue: address, ipAddress: req.ip ?? 'unknown'
+  });
+  res.status(201).json(created);
+});
+
+export const deleteDepositAddress = asyncHandler(async (req: Request, res: Response) => {
+  const deleted = await DepositAddress.findByIdAndDelete(req.params.id);
+  if (!deleted) throw ApiError.notFound('Deposit address not found.');
+
+  await AuditLog.create({
+    adminId: req.user!.id, adminName: req.user!.fullName, action: `Removed deposit address for ${deleted.currency} (${deleted.network})`,
+    targetResource: 'DepositAddress', resourceId: deleted._id.toString(), oldValue: deleted.address, ipAddress: req.ip ?? 'unknown'
+  });
+  res.json({ message: 'Deposit address removed.' });
 });
 

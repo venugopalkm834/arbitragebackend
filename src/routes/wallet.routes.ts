@@ -7,5 +7,6 @@ router.use(requireAuth);
 
 router.get('/', walletController.getWallet);
 router.get('/transactions', walletController.getTransactions);
+router.get('/deposit-addresses', walletController.getDepositAddresses);
 
 export default router;
