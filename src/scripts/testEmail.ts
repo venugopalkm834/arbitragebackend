@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 import { sendOtpEmail } from '../utils/email';
 
 /**
+ * 
  * testEmail.ts
  * ------------
  * Standalone check for the Resend config — sends one real OTP-style email
