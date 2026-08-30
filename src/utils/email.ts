@@ -32,10 +32,10 @@ export function logEmailConfigStatus(): void {
 }
 
 export async function sendOtpEmail(to: string, otp: string): Promise<void> {
-  const subject = 'Your ArbitreX verification code';
+  const subject = 'Your ArbidX verification code';
   const html = `
     <div style="font-family:sans-serif;max-width:420px;margin:0 auto;">
-      <h2 style="color:#0f2a5e;">ArbitreX Verification Code</h2>
+      <h2 style="color:#0f2a5e;">ArbidX Verification Code</h2>
       <p>Use the code below to finish signing in:</p>
       <p style="font-size:32px;font-weight:800;letter-spacing:6px;color:#1d4ed8;">${otp}</p>
       <p style="color:#6b7280;font-size:13px;">This code expires in ${env.twoFactorOtpExpiresMinutes} minutes. If you didn't request this, you can safely ignore this email.</p>

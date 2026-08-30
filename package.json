@@ -1,7 +1,7 @@
 {
-  "name": "arbitrex-backend",
+  "name": "ArbidX-backend",
   "version": "1.0.0",
-  "description": "ArbitreX — Crypto Arbitrage Trading Platform backend (Node.js + Express + MongoDB)",
+  "description": "ArbidX — Crypto Arbitrage Trading Platform backend (Node.js + Express + MongoDB)",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",

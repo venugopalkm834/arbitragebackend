@@ -10,12 +10,12 @@
 # Usage:
 #   docker compose up -d
 #   # MONGODB_URI in .env should then be:
-#   # mongodb://127.0.0.1:27017/arbitrex?replicaSet=rs0
+#   # mongodb://127.0.0.1:27017/ArbidX?replicaSet=rs0
 
 services:
   mongo:
     image: mongo:7
-    container_name: arbitrex-mongo
+    container_name:ArbidX-mongo
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"

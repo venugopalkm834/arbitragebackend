@@ -1,6 +1,6 @@
-# ArbitreX Backend — Node.js + Express + MongoDB
+#ArbidX Backend — Node.js + Express + MongoDB
 
-The real API behind the ArbitreX Angular frontend. Implements JWT auth,
+The real API behind theArbidX Angular frontend. Implements JWT auth,
 an auditable wallet ledger, a server-authoritative demo arbitrage
 trading engine with live Socket.IO updates, the full admin API
 (deposits/withdrawals approval, wallet credit/debit, audit logs), and
@@ -9,7 +9,7 @@ trading engine with live Socket.IO updates, the full admin API
 day's simulated positions toward it.
 
 If you need PostgreSQL + Sequelize instead, see the separate
-`arbitrex-pg-backend` build — same API surface and feature set, just a
+`ArbidX-pg-backend` build — same API surface and feature set, just a
 different datastore. This is the MongoDB version.
 
 ## Stack
