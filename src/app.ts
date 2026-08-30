@@ -10,7 +10,6 @@ import { apiRateLimiter } from './middleware/rateLimit.middleware';
 import routes from './routes';
 export function createApp(): Express {
   const app = express();
-
   // spec §41: Helmet, CORS, request validation, rate limiting.
   app.use(helmet());
   app.use(
