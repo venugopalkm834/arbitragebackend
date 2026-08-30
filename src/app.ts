@@ -8,7 +8,6 @@ import { env } from './config/env';
 import { errorMiddleware, notFoundMiddleware } from './middleware/error.middleware';
 import { apiRateLimiter } from './middleware/rateLimit.middleware';
 import routes from './routes';
-
 export function createApp(): Express {
   const app = express();
 
