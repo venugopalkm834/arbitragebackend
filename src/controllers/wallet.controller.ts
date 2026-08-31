@@ -3,7 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ApiError } from '../utils/ApiError';
 import { Wallet } from '../models/Wallet';
 import { WalletTransaction } from '../models/WalletTransaction';
-import { DepositAddress } from '../models/depositAddress';
+import { DepositAddress } from '../models/DepositAddress';
 
 export const getWallet = asyncHandler(async (req: Request, res: Response) => {
   const wallet = await Wallet.findOne({ userId: req.user!.id });

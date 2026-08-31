@@ -9,6 +9,7 @@ export * from './AdminAdjustment';
 export * from './AuditLog';
 export * from './Notification';
 export * from './BotConfig';
+export * from './DepositAddress';
 
 export * from './ArbitrageOpportunityConfig';
 export * from './Counter';

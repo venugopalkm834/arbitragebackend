@@ -14,7 +14,7 @@ import * as adminService from '../services/admin.service';
 import * as engine from '../services/arbitrageEngine.service';
 import { serializeTrade } from './trade.controller';
 import { AuditContext } from '../services/admin.service';
-import { DepositAddress } from '../models/depositAddress';
+import { DepositAddress } from '../models/DepositAddress';
 
 function auditContext(req: Request): AuditContext {
   return {
