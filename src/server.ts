@@ -8,8 +8,14 @@ import { startScheduler, stopScheduler } from './services/botScheduler.service';
 import { logEmailConfigStatus } from './utils/email';
 
 async function main(): Promise<void> {
+  //await connectDatabase();
+try{
   await connectDatabase();
-
+  logger.info('Database connection established successfully');
+}catch (error) {
+  logger.error('Error connecting to the database:', error);
+  process.exit(1); // Exit the process with an error code
+}
   // Surface SMTP misconfiguration immediately at boot (e.g. "OTP not
   // arriving by email") instead of only discovering it on a user's first
   // login attempt.
@@ -27,7 +33,7 @@ async function main(): Promise<void> {
   // after a restart with no separate recovery step needed.
   startScheduler();
 
-  server.listen(env.port, () => {
+  server.listen(env.port,'0.0.0.0', () => {
     logger.info(`ArbitreX backend listening on port ${env.port} (${env.nodeEnv}, TRADING_MODE=${env.tradingMode})`);
   });
 
