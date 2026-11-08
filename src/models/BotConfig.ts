@@ -11,6 +11,7 @@ export interface IBotConfig extends Document {
   supportedPairs: string[];
   botFeePct: number;
   tradingFeePct: number;
+  /** Max simultaneous ACTIVE bot sessions per user. 0 = unlimited. */
   maxActiveBotsPerUser: number;
   // Controlled simulation parameters (spec: monthly target / daily pacing / per-trade P&L bounds).
   botEnabled: boolean;
