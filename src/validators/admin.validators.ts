@@ -27,7 +27,8 @@ export const botConfigSchema = z.object({
   supportedPairs: z.array(z.string()).optional(),
   botFeePct: z.number().min(0).optional(),
   tradingFeePct: z.number().min(0).optional(),
-  maxActiveBotsPerUser: z.number().int().positive().optional(),
+  // 0 = unlimited active bots per user.
+  maxActiveBotsPerUser: z.number().int().min(0).optional(),
   // Controlled simulation parameters — spec §2/§11.
   botEnabled: z.boolean().optional(),
   monthlyTargetMinPct: z.number().min(0).optional(),
