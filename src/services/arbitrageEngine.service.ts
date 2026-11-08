@@ -117,7 +117,8 @@ export async function startTrade(userId: string, input: StartTradeInput): Promis
   }
 
   const activeCount = await BotSession.countDocuments({ userId, status: 'ACTIVE' });
-  if (activeCount >= config.maxActiveBotsPerUser) {
+  // maxActiveBotsPerUser === 0 means "unlimited" (admin-configurable in Bot Control).
+  if (config.maxActiveBotsPerUser > 0 && activeCount >= config.maxActiveBotsPerUser) {
     throw ApiError.badRequest(`Maximum of ${config.maxActiveBotsPerUser} active bots per user reached.`);
   }
 
